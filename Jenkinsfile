@@ -71,7 +71,7 @@ pipeline {
                     docker tag simple-web-app ${DOCKER_USER}/simple-web-app:latest
 
                     docker push ${DOCKER_USER}/simple-web-app:latest
-                    ''''
+                    '''
 
                 }
             }
