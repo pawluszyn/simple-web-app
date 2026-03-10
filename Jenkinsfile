@@ -43,7 +43,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh '''
-                sudo podman build -t $IMAGE_NAME .
+                docker build -t $IMAGE_NAME .
                 '''
             }
         }
