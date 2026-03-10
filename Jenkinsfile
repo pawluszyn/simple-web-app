@@ -67,17 +67,22 @@ pipeline {
 
                     sh '''
                     echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-
-                    docker tag simple-web-app ${DOCKER_USER}/$simple-web-app:latest
+                    
+                    docker tag simple-web-app ${DOCKER_USER}/simple-web-app:latest
 
                     docker push ${DOCKER_USER}/$simple-web-app:latest
-                    '''
+                    ''''
+
                 }
             }
         }
 
         stage('Deploy') {
             steps {
+                withCredentials([usernamePassword(
+                  credentialsId: DOCKERHUB_CREDENTIALS,
+                  usernameVariable: 'DOCKER_USER'
+                )]) {
                 sh '''
                 docker stop simple-web-app || true
                 docker rm simple-web-app || true
@@ -86,6 +91,7 @@ pipeline {
                   --name simple-web-app \
                   ${DOCKER_USER}/simple-web-app:latest
                 '''
+                }
             }
         }
     }
