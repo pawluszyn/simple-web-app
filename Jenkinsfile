@@ -40,6 +40,15 @@ pipeline {
             }
         }
 
+        stage('Debug env') {
+            steps {
+                sh '''
+                echo IMAGE_NAME=$IMAGE_NAME
+                echo DOCKER_USER=$DOCKER_USER
+                '''
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 sh '''
@@ -59,9 +68,9 @@ pipeline {
                     sh '''
                     echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
 
-                    docker tag $IMAGE_NAME $DOCKER_USER/$IMAGE_NAME:latest
+                    docker tag simple-web-app ${DOCKER_USER}/$simple-web-app:latest
 
-                    docker push $DOCKER_USER/$IMAGE_NAME:latest
+                    docker push ${DOCKER_USER}/$simple-web-app:latest
                     '''
                 }
             }
@@ -75,7 +84,7 @@ pipeline {
 
                 docker run -d -p 5000:5000 \
                   --name simple-web-app \
-                  $DOCKER_USER/$IMAGE_NAME:latest
+                  ${DOCKER_USER}/simple-web-app:latest
                 '''
             }
         }
