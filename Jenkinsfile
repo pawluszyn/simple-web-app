@@ -5,7 +5,7 @@ pipeline {
     environment {
         IMAGE_NAME = "simple-web-app"
         DOCKER_REGISTRY = "docker.io"
-        DOCKERHUB_CREDENTIALS = "dockerhub-creds"
+        DOCKERHUB_CREDENTIALS = "docker-hub"
       }
   }
 
@@ -79,5 +79,18 @@ pipeline {
               '''
             }
         } 
+  }
+
+post {
+  success {
+    echo "Pipeline completed successfully"
+        }
+  failure {
+    echo "Pipeline failed""
+    }
+  always {
+      cleanWs()
+    }
+  }
 
 
