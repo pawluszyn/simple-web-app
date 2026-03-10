@@ -1,14 +1,8 @@
 pipeline {
-    agent any
+    agent { label 'docker' }
 
     environment {
         IMAGE_NAME = "simple-web-app"
-        DOCKER_REGISTRY = "docker.io"
-        DOCKERHUB_CREDENTIALS = "docker-hub"
-    }
-
-    options {
-        timestamps()
     }
 
     stages {
@@ -19,32 +13,14 @@ pipeline {
             }
         }
 
-        stage('Setup Python') {
+        stage('Install & Test') {
             steps {
                 sh '''
                 python3 -m venv venv
                 . venv/bin/activate
                 pip install --upgrade pip
                 pip install -r app/requirements.txt
-                pip install pytest
-                '''
-            }
-        }
-
-        stage('Run Tests') {
-            steps {
-                sh '''
-                . venv/bin/activate
-                PYTHONPATH=$PWD pytest -v
-                '''
-            }
-        }
-
-        stage('Debug env') {
-            steps {
-                sh '''
-                echo IMAGE_NAME=$IMAGE_NAME
-                echo DOCKER_USER=$DOCKER_USER
+                pytest
                 '''
             }
         }
@@ -52,62 +28,43 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh '''
-                sudo docker build -t $IMAGE_NAME .
+                docker build -t $IMAGE_NAME .
                 '''
             }
         }
 
-        stage('Push Docker Image') {
+        stage('Run Container Locally') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: DOCKERHUB_CREDENTIALS,
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
+                sh '''
+                # stop and remove previous container if it exists
+                docker stop $IMAGE_NAME || true
+                docker rm $IMAGE_NAME || true
 
+                # run the newly built image
+                docker run -d -p 5000:5000 --name $IMAGE_NAME $IMAGE_NAME:latest
+                '''
+            }
+        }
+
+        stage('Push to DockerHub') {
+            steps {
+                // credentials are only available inside this block
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'docker-hub',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
                     sh '''
                     echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                    
-                    docker tag simple-web-app ${DOCKER_USER}/simple-web-app:latest
 
-                    docker push ${DOCKER_USER}/simple-web-app:latest
+                    # push image with correct tag format
+                    docker tag $IMAGE_NAME ${DOCKER_USER}/$IMAGE_NAME:latest
+                    docker push ${DOCKER_USER}/$IMAGE_NAME:latest
                     '''
-
                 }
             }
-        }
-
-        stage('Deploy') {
-            steps {
-                withCredentials([usernamePassword(
-                  credentialsId: DOCKERHUB_CREDENTIALS,
-                  usernameVariable: 'DOCKER_USER'
-                )]) {
-                sh '''
-                docker stop simple-web-app || true
-                docker rm simple-web-app || true
-
-                docker run -d -p 5000:5000 \
-                  --name simple-web-app \
-                  ${DOCKER_USER}/simple-web-app:latest
-                '''
-                }
-            }
-        }
-    }
-
-    post {
-
-        success {
-            echo "Pipeline completed successfully"
-        }
-
-        failure {
-            echo "Pipeline failed"
-        }
-
-        always {
-            cleanWs()
         }
     }
 }

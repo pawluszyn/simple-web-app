@@ -1,0 +1,22 @@
+# Git files
+.git
+.gitignore
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.env
+
+# Tests (not needed in image)
+tests/
+
+# Logs
+*.log
+
+# OS-specific files
+.DS_Store
